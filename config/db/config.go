@@ -10,4 +10,8 @@ type Properties struct{
 	UsersCollection string `env:"COLLECTION_NAME" env-default:"users"`
 	ProductCollection string `env:"COLLECTION_NAME" env-default:"product"`
 	ProductTypeCollection string `env:"COLLECTION_NAME" env-default:"product-type"`
+	ProductPTypeCollection string `env:"COLLECTION_NAME" env-default:"product.p-type"`
+	ProductPriceTierCollection string `env:"COLLECTION_NAME" env-default:"product.pricetier"`
+	SessionCollection string `env:"COLLECTION_NAME" env-default:"sessions"`
+	ChartsRenderCollection string `env:"COLLECTION_NAME" env-default:"chartsrender"`
 }

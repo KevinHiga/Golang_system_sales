@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"golang-project/config/dbiface"
+	_HttpDeliveryMiddleware "golang-project/config/middleware"
 	"golang-project/models"
 	"log"
 	"net/http"
@@ -13,13 +14,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func NewProductTypeHandler(e *echo.Echo, pcol dbiface.CollectionAPI) {
+func NewProductTypeHandler(g *echo.Group, pcol dbiface.CollectionAPI) {
 	pth := Handler{Col: pcol}
-	e.GET("/products/type", pth.GetProductsTypeEndpoint)
-	e.GET("/product/type/:id", pth.GetProductTypeEndpoint)
-	e.DELETE("/product/type/:id", pth.DeleteProductTypeEndpoint)
-	e.PUT("/product/type/:id", pth.UpdateProductTypeEndpoint)
-	e.POST("/product/type", pth.CreateProductTypeEndpoint)
+	g.Use(_HttpDeliveryMiddleware.Cookies)
+	g.GET("/all", pth.GetProductsTypeEndpoint)
+	g.GET("/:id", pth.GetProductTypeEndpoint)
+	g.DELETE("/:id", pth.DeleteProductTypeEndpoint)
+	g.PUT("/:id", pth.UpdateProductTypeEndpoint)
+	g.POST("/create", pth.CreateProductTypeEndpoint)
 }
 
 func (h *Handler) GetProductsTypeEndpoint(c echo.Context) error {

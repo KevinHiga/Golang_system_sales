@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"golang-project/config/dbiface"
 	"golang-project/models"
 	"io"
@@ -64,6 +65,7 @@ func ModifyProduct(ctx context.Context, id string, reqBody io.ReadCloser, collec
 func InsertProduct(ctx context.Context, products []models.Product, collection dbiface.CollectionAPI) ([]interface{}, error) {
 	var insertedIds []interface{}
 	for _, product := range products {
+		fmt.Printf("linea 68 ingresar producto %v\n\n", product)
 		product.ID = ksuid.New().String()
 		insertID, err := collection.InsertOne(ctx, product)
 		if err != nil {

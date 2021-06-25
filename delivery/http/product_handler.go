@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"golang-project/config/dbiface"
+	_HttpDeliveryMiddleware "golang-project/config/middleware"
 	"log"
 	"net/http"
 
@@ -14,13 +15,14 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func NewProductHandler(e *echo.Echo, pcol dbiface.CollectionAPI) {
+func NewProductHandler(g *echo.Group, pcol dbiface.CollectionAPI) {
 	ph := Handler{Col: pcol}
-	e.GET("/products", ph.GetProductsEndpoint)
-	e.GET("/product/:id", ph.GetProductEndpoint)
-	e.DELETE("/product/:id", ph.DeleteProductEndpoint)
-	e.PUT("/product/:id", ph.UpdateProductEndpoint)
-	e.POST("/product", ph.CreateProductEndpoint)
+	g.Use(_HttpDeliveryMiddleware.Cookies)
+	g.GET("/all", ph.GetProductsEndpoint)
+	g.GET("/:id", ph.GetProductEndpoint)
+	g.DELETE("/delete/:id", ph.DeleteProductEndpoint)
+	g.PUT("/:id", ph.UpdateProductEndpoint)
+	g.POST("/create", ph.CreateProductEndpoint)
 }
 
 func (h *Handler) GetProductsEndpoint(c echo.Context) error {
@@ -62,6 +64,7 @@ func (h *Handler) CreateProductEndpoint(c echo.Context) error {
 }
 
 func (h *Handler) DeleteProductEndpoint(c echo.Context) error {
+	log.Println("paso\n\n")
 	delCount, err := productUcase.DeleteProductData(context.Background(), c.Param("id"), h.Col)
 	if err != nil {
 		return err

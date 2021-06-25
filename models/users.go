@@ -8,5 +8,6 @@ type Users struct {
 	Mail     string `json:"mail,omitempty" bson:"mail,omitempty"`
 	Password string `json:"password,omitempty" bson:"password,omitempty"`
 	Admin bool `json:"admin,omitempty" bson:"admin,omitempty"`
+	Sesion    Session `json:"Session,omitempty" bson:"Session,omitempty"`
 	jwt.StandardClaims
 }

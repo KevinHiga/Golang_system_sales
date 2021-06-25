@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"golang-project/config/dbiface"
 	"golang-project/config/security"
@@ -12,23 +11,21 @@ import (
 
 	"github.com/segmentio/ksuid"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func InsertUser(ctx context.Context, users []models.Users, collection dbiface.CollectionAPI) ([]interface{}, error) {
 	var insertedIds []interface{}
 	for _, user := range users {
 		user.ID = ksuid.New().String()
-		//err := fmt.Errorf("")
 		exists, err := FindUserName(ctx, user.UserName, collection)
 		if exists != nil {
-			log.Println("El username ya existe")
-			err := fmt.Errorf("El username ya existe")
+			err := fmt.Errorf("The username already exists")
 			return nil, err
 		}
 		exists, err = FindMail(ctx, user.Mail, collection)
 		if exists != nil {
-			log.Println("El mail ya existe")
-			err := fmt.Errorf("El mail ya existe")
+			err := fmt.Errorf("The mail already exists")
 			return nil, err
 		}
 		user.Password, err = security.EncryptPassword(user.Password)
@@ -61,6 +58,16 @@ func FindUsers(ctx context.Context, collection dbiface.CollectionAPI) (*[]models
 	return &user, nil
 }
 
+func FindUser(ctx context.Context, id string, collection dbiface.CollectionAPI) (models.Users, error) {
+	var user models.Users
+	res := collection.FindOne(ctx, bson.M{"_id": id})
+	err := res.Decode(&user)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
+}
+
 func FindUserName(ctx context.Context, username string, collection dbiface.CollectionAPI) (*models.Users, error) {
 	var user models.Users
 	res := collection.FindOne(ctx, bson.M{"username": username})
@@ -81,40 +88,66 @@ func FindMail(ctx context.Context, mail string, collection dbiface.CollectionAPI
 	return &user, nil
 }
 
-func ForgotPassword(ctx context.Context, users models.Users, reqBody io.ReadCloser, collection dbiface.CollectionAPI) (*models.Users, error) {
-	exists, err := FindUserName(ctx, users.UserName, collection)
-	if exists == nil {
-		log.Println("El username no existe")
-		err := fmt.Errorf("El username no existe")
-		return nil, err
+func Login(ctx context.Context, inputs []models.Users, reqBody io.ReadCloser, collection dbiface.CollectionAPI) (*[]models.Users, error) {
+	for _, input := range inputs {
+		exists, err := FindUserName(ctx, input.UserName, collection)
+		if exists == nil {
+			err = fmt.Errorf("The username does not exist")
+			return nil, err
+		}
+		/*
+			exists, err = FindMail(ctx, user.Mail, collection)
+			if exists != nil {
+				log.Println("El mail ya existe")
+				err := fmt.Errorf("El mail ya existe")
+				return nil, err
+			}
+		*/
+		input.Password, err = security.EncryptPassword(input.Password)
+		if err != nil {
+			log.Printf("Incapaz de insertar en la base de datos:%v", err)
+			return nil, err
+		}
+		opts := options.Update().SetUpsert(true)
+		filter := bson.M{"username": input.UserName}
+		update := bson.D{{"$set", bson.D{{"password", input.Password}}}}
+		_, err = collection.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Printf("Incapaz de actualizar el libro : %v", err)
+			return nil, err
+		}
 	}
-	/*
-	exists, err = FindMail(ctx, user.Mail, collection)
-	if exists != nil {
-		log.Println("El mail ya existe")
-		err := fmt.Errorf("El mail ya existe")
-		return nil, err
+	return &inputs, nil
+}
+
+func ForgotPassword(ctx context.Context, inputs []models.Users, reqBody io.ReadCloser, collection dbiface.CollectionAPI) (*[]models.Users, error) {
+	for _, input := range inputs {
+		exists, err := FindUserName(ctx, input.UserName, collection)
+		if exists == nil {
+			err = fmt.Errorf("The username does not exist")
+			return nil, err
+		}
+		/*
+			exists, err = FindMail(ctx, user.Mail, collection)
+			if exists != nil {
+				log.Println("El mail ya existe")
+				err := fmt.Errorf("El mail ya existe")
+				return nil, err
+			}
+		*/
+		input.Password, err = security.EncryptPassword(input.Password)
+		if err != nil {
+			log.Printf("Incapaz de insertar en la base de datos:%v", err)
+			return nil, err
+		}
+		opts := options.Update().SetUpsert(true)
+		filter := bson.M{"username": input.UserName}
+		update := bson.D{{"$set", bson.D{{"password", input.Password}}}}
+		_, err = collection.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
+			log.Printf("Incapaz de actualizar el libro : %v", err)
+			return nil, err
+		}
 	}
-	*/
-	users.Password, err = security.EncryptPassword(users.Password)
-	if err != nil {
-		log.Printf("Incapaz de insertar en la base de datos:%v", err)
-		return nil, err
-	}
-	filter := bson.M{"username": users.UserName}
-	res := collection.FindOne(ctx, filter)
-	if err := res.Decode(&users); err != nil {
-		log.Printf("unable to decode to library :%v", err)
-		return &users, err
-	}
-	if err := json.NewDecoder(reqBody).Decode(&users); err != nil {
-		log.Printf("unable to decode using reqbody : %v", err)
-		return &users, err
-	}
-	_, err = collection.UpdateOne(ctx, filter, bson.M{"$set": users.Password})
-	if err != nil {
-		log.Printf("Incapaz de actualizar el libro : %v", err)
-		return &users, err
-	}
-	return &users, nil
+	return &inputs, nil
 }

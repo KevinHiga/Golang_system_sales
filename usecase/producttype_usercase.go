@@ -9,15 +9,15 @@ import (
 )
 
 
-func FindProductTypeAllData(ctx context.Context, collection dbiface.CollectionAPI) ([]models.Product, error) {
+func FindProductTypeAllData(ctx context.Context, collection dbiface.CollectionAPI) ([]models.ProductType, error) {
 	return productTypeRepo.FindProductsType(ctx, collection)
 }
 
-func FindProductTypeOneData(ctx context.Context, id string, collection dbiface.CollectionAPI) (models.Product, error) {
+func FindProductTypeOneData(ctx context.Context, id string, collection dbiface.CollectionAPI) (models.ProductType, error) {
 	return productTypeRepo.FindProductType(ctx, id, collection)
 }
 
-func UpdateProductTypeData(ctx context.Context, id string, reqBody io.ReadCloser, collection dbiface.CollectionAPI) (models.Product, error) {
+func UpdateProductTypeData(ctx context.Context, id string, reqBody io.ReadCloser, collection dbiface.CollectionAPI) (models.ProductType, error) {
 	return productTypeRepo.ModifyProductType(ctx, id, reqBody, collection)
 }
 

@@ -13,8 +13,8 @@ import (
 )
 
 
-func FindProductsType(ctx context.Context, collection dbiface.CollectionAPI) ([]models.Product, error) {
-	var product []models.Product
+func FindProductsType(ctx context.Context, collection dbiface.CollectionAPI) ([]models.ProductType, error) {
+	var product []models.ProductType
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
 		log.Printf("Incapaz de encontrar el libro %+v", err)
@@ -26,8 +26,8 @@ func FindProductsType(ctx context.Context, collection dbiface.CollectionAPI) ([]
 	return product, nil
 }
 
-func FindProductType(ctx context.Context, id string, collection dbiface.CollectionAPI) (models.Product, error) {
-	var product models.Product
+func FindProductType(ctx context.Context, id string, collection dbiface.CollectionAPI) (models.ProductType, error) {
+	var product models.ProductType
 	res := collection.FindOne(ctx, bson.M{"_id": id})
 	err := res.Decode(&product)
 	if err != nil {
@@ -36,8 +36,8 @@ func FindProductType(ctx context.Context, id string, collection dbiface.Collecti
 	return product, nil
 }
 
-func ModifyProductType(ctx context.Context, id string, reqBody io.ReadCloser, collection dbiface.CollectionAPI) (models.Product, error) {
-	var product models.Product
+func ModifyProductType(ctx context.Context, id string, reqBody io.ReadCloser, collection dbiface.CollectionAPI) (models.ProductType, error) {
+	var product models.ProductType
 	//find if the product exits, if err return 404
 	filter := bson.M{"_id": id}
 	res := collection.FindOne(ctx, filter)

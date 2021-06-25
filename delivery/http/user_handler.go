@@ -4,23 +4,67 @@ import (
 	"context"
 	"fmt"
 	"golang-project/config/dbiface"
+	"golang-project/config/security"
 	"log"
 	"net/http"
 
+	_HttpDeliveryMiddleware "golang-project/config/middleware"
 	"golang-project/models"
 	userUcase "golang-project/usecase"
 
 	"github.com/labstack/echo/v4"
 )
 
-func NewUsersHandler(e *echo.Echo, ucol dbiface.CollectionAPI) {
+func NewUsersHandler(g *echo.Group, ucol dbiface.CollectionAPI) {
 	h := Handler{Col: ucol}
-	e.POST("/user/registrate", h.CreateUsersEndpoint)
-	e.POST("/user/login", h.Login)
-	e.POST("/user/logout", h.Logout)
-	e.POST("/user/forgot", h.ForgotPassword)
-	e.GET("/users", h.GetUsersEndpoint)
-	e.GET("/user", h.User)
+	g.POST("/login", h.login)
+	g.POST("/logingoogle", h.LoginGoogle)
+	g.POST("/forgot", h.ForgotPassword)
+	g.Use(_HttpDeliveryMiddleware.Cookies)
+	userGroup := g.Group("/user")
+	userGroup.POST("/registrate", h.CreateUsersEndpoint)
+	userGroup.POST("/logout", h.Logout)
+	userGroup.GET("/all", h.GetUsersEndpoint)
+	userGroup.GET("/one", h.User)
+}
+
+func (h *Handler) LoginGoogle(c echo.Context) error {
+	var users []models.Users
+	if err := c.Bind(&users); err != nil {
+		log.Printf("Unable to bind : %v", err)
+		return err
+	}
+	username, err := userUcase.LoginGoogle(context.Background(), users, c.Request().Body, h.Col, c)
+	if err != nil {
+		return security.CustomError(500, err.Error())
+	}
+	return c.JSONPretty(http.StatusOK, username, "  ")
+}
+
+func (h *Handler) login(c echo.Context) error {
+	var users []models.Users
+	if err := c.Bind(&users); err != nil {
+		log.Printf("Unable to bind : %v", err)
+		return err
+	}
+	username, err := userUcase.Login(context.Background(), users, c.Request().Body, h.Col, c)
+	if err != nil {
+		return security.CustomError(500, err.Error())
+	}
+	return c.JSONPretty(http.StatusOK, username, "  ")
+}
+
+func (h *Handler) ForgotPassword(c echo.Context) error {
+	var users []models.Users
+	if err := c.Bind(&users); err != nil {
+		log.Printf("Unable to bind : %v", err)
+		return err
+	}
+	username, err := userUcase.ForgotPassword(context.Background(), users, c.Request().Body, h.Col)
+	if err != nil {
+		return security.CustomError(500, err.Error())
+	}
+	return c.JSONPretty(http.StatusOK, username, "  ")
 }
 
 func (h *Handler) CreateUsersEndpoint(c echo.Context) error {
@@ -32,7 +76,7 @@ func (h *Handler) CreateUsersEndpoint(c echo.Context) error {
 	}
 	IDs, err := userUcase.CreateUsersData(context.Background(), users, h.Col)
 	if err != nil {
-		return err
+		return security.CustomError(500, err.Error())
 	}
 	return c.JSON(http.StatusCreated, IDs)
 }
@@ -50,7 +94,7 @@ func (h *Handler) GetUsersEndpoint(c echo.Context) error {
 func (h *Handler) User(c echo.Context) error {
 	user, err := userUcase.User(context.Background(), h.Col, c)
 	if err != nil {
-		return c.JSONPretty(http.StatusUnauthorized, user, "  ")
+		return security.Unauthorized()
 	}
 	return c.JSONPretty(http.StatusOK, user, "  ")
 }
@@ -61,36 +105,4 @@ func (h *Handler) Logout(c echo.Context) error {
 		return err
 	}
 	return c.JSONPretty(http.StatusOK, nil, "  ")
-}
-
-func (h *Handler) Login(c echo.Context) error {
-	var users []models.Users
-	if err := c.Bind(&users); err != nil {
-		log.Printf("Unable to bind : %v", err)
-		return err
-	}
-	username, err := userUcase.Login(context.Background(), users, h.Col, c)
-	if err != nil {
-		if err.Error() == "Contraseña equivocada" {
-			
-		}
-		return c.JSONPretty(http.StatusUnauthorized, err.Error(), "  ")
-	}
-	return c.JSONPretty(http.StatusOK, username, "  ")
-}
-
-func (h *Handler) ForgotPassword(c echo.Context) error {
-	var users models.Users
-	if err := c.Bind(&users); err != nil {
-		log.Printf("Unable to bind : %v", err)
-		return err
-	}
-	username, err := userUcase.ForgotPassword(context.Background(), users, c.Request().Body, h.Col)
-	if err != nil {
-		if err.Error() == "Contraseña equivocada" {
-			
-		}
-		return c.JSONPretty(http.StatusUnauthorized, err.Error(), "  ")
-	}
-	return c.JSONPretty(http.StatusOK, username, "  ")
 }
